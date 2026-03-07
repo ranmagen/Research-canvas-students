@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useReducer, useCallback } from 'react';
+import React, { createContext, useContext, useReducer, useCallback, useMemo } from 'react';
 import { AppState, AppAction, ActionId, PathId, ChatMessage } from '@/types';
 import { Editor } from 'tldraw';
 
@@ -51,14 +51,20 @@ function appReducer(state: AppState, action: AppAction): AppState {
   }
 }
 
-interface AppContextType {
-  state: AppState;
-  dispatch: React.Dispatch<AppAction>;
+// Separate context for the editor - doesn't change with app state
+interface EditorContextType {
   editor: Editor | null;
   setEditor: (editor: Editor) => void;
 }
 
-const AppContext = createContext<AppContextType | null>(null);
+// App state context - changes frequently with sidebar interactions
+interface AppStateContextType {
+  state: AppState;
+  dispatch: React.Dispatch<AppAction>;
+}
+
+const EditorContext = createContext<EditorContextType | null>(null);
+const AppStateContext = createContext<AppStateContextType | null>(null);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, initialState);
@@ -68,17 +74,42 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setEditorState(ed);
   }, []);
 
+  const editorValue = useMemo(() => ({ editor, setEditor }), [editor, setEditor]);
+  const appStateValue = useMemo(() => ({ state, dispatch }), [state]);
+
   return (
-    <AppContext.Provider value={{ state, dispatch, editor, setEditor }}>
-      {children}
-    </AppContext.Provider>
+    <EditorContext.Provider value={editorValue}>
+      <AppStateContext.Provider value={appStateValue}>
+        {children}
+      </AppStateContext.Provider>
+    </EditorContext.Provider>
   );
 }
 
-export function useAppStore() {
-  const context = useContext(AppContext);
+// Hook for components that only need the editor (like Canvas)
+export function useEditor() {
+  const context = useContext(EditorContext);
   if (!context) {
-    throw new Error('useAppStore must be used within AppProvider');
+    throw new Error('useEditor must be used within AppProvider');
   }
   return context;
+}
+
+// Hook for components that need app state (like Sidebar)
+export function useAppState() {
+  const context = useContext(AppStateContext);
+  if (!context) {
+    throw new Error('useAppState must be used within AppProvider');
+  }
+  return context;
+}
+
+// Combined hook for components that need both (like InteractionPanel)
+export function useAppStore() {
+  const editorCtx = useContext(EditorContext);
+  const appStateCtx = useContext(AppStateContext);
+  if (!editorCtx || !appStateCtx) {
+    throw new Error('useAppStore must be used within AppProvider');
+  }
+  return { ...appStateCtx, ...editorCtx };
 }

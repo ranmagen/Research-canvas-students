@@ -1,14 +1,15 @@
 'use client';
 
+import React from 'react';
 import { Tldraw } from 'tldraw';
 import 'tldraw/tldraw.css';
-import { useAppStore } from '@/store/app-store';
+import { useEditor } from '@/store/app-store';
 
-export default function Canvas() {
-  const { setEditor } = useAppStore();
+function Canvas() {
+  const { setEditor } = useEditor();
 
   return (
-    <div className="flex-1 h-screen" dir="ltr">
+    <div className="flex-1 h-screen min-w-0" dir="ltr">
       <Tldraw
         onMount={(editor) => {
           setEditor(editor);
@@ -17,3 +18,5 @@ export default function Canvas() {
     </div>
   );
 }
+
+export default React.memo(Canvas);
