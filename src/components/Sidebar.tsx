@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { useAppStore } from '@/store/app-store';
 import PathSelector from './PathSelector';
 import ActionButtons from './ActionButtons';
@@ -8,8 +7,7 @@ import InteractionPanel from './InteractionPanel';
 import ExportControls from './ExportControls';
 
 export default function Sidebar() {
-  const { state } = useAppStore();
-  const [topic, setTopic] = useState('');
+  const { state, dispatch } = useAppStore();
 
   return (
     <aside className="w-[360px] h-screen bg-white border-s-2 border-[var(--color-border)] flex flex-col overflow-hidden">
@@ -31,8 +29,8 @@ export default function Sidebar() {
         <input
           dir="rtl"
           type="text"
-          value={topic}
-          onChange={(e) => setTopic(e.target.value)}
+          value={state.topic}
+          onChange={(e) => dispatch({ type: 'SET_TOPIC', topic: e.target.value })}
           placeholder="למשל: מלחמת העולם השנייה, אפליקציה חברתית..."
           className="w-full border border-[var(--color-border)] rounded-lg p-2 text-sm focus:outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]"
         />

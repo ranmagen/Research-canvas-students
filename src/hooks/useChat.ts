@@ -2,45 +2,61 @@
 
 import { useState, useCallback } from 'react';
 import { ActionId } from '@/types';
-import { MOCK_RESPONSES, MOCK_JOKER_RESPONSE } from '@/lib/mock-responses';
 
 export function useChat() {
   const [response, setResponse] = useState<string>('');
   const [isStreaming, setIsStreaming] = useState(false);
 
-  const simulateStreaming = useCallback(async (text: string) => {
-    setIsStreaming(true);
-    setResponse('');
-
-    // Simulate streaming by revealing text gradually
-    const words = text.split(' ');
-    let accumulated = '';
-
-    for (let i = 0; i < words.length; i++) {
-      accumulated += (i > 0 ? ' ' : '') + words[i];
-      setResponse(accumulated);
-      await new Promise((r) => setTimeout(r, 20 + Math.random() * 30));
-    }
-
-    setIsStreaming(false);
-    return text;
-  }, []);
-
   const sendMessage = useCallback(
     async (actionId: ActionId, userInput: string): Promise<string> => {
-      const mockResponse = MOCK_RESPONSES[actionId];
-      const fullResponse = await simulateStreaming(mockResponse);
-      return fullResponse;
+      setIsStreaming(true);
+      setResponse('');
+      try {
+        const res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ actionId, userInput }),
+        });
+        const data = await res.json();
+        const text = data.response || '';
+        setResponse(text);
+        return text;
+      } catch (err) {
+        console.error('Chat error:', err);
+        const errMsg = 'אירעה שגיאה. נסה/י שוב.';
+        setResponse(errMsg);
+        return errMsg;
+      } finally {
+        setIsStreaming(false);
+      }
     },
-    [simulateStreaming]
+    []
   );
 
   const sendJoker = useCallback(
     async (canvasText: string): Promise<string> => {
-      const fullResponse = await simulateStreaming(MOCK_JOKER_RESPONSE);
-      return fullResponse;
+      setIsStreaming(true);
+      setResponse('');
+      try {
+        const res = await fetch('/api/joker', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ canvasText }),
+        });
+        const data = await res.json();
+        const text = data.response || '';
+        setResponse(text);
+        return text;
+      } catch (err) {
+        console.error('Joker error:', err);
+        const errMsg = 'אירעה שגיאה. נסה/י שוב.';
+        setResponse(errMsg);
+        return errMsg;
+      } finally {
+        setIsStreaming(false);
+      }
     },
-    [simulateStreaming]
+    []
   );
 
   const clearResponse = useCallback(() => {

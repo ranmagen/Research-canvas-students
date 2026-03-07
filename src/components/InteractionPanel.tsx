@@ -32,8 +32,11 @@ export default function InteractionPanel() {
     if (!userInput.trim() && !isJokerMode) return;
 
     if (activeAction) {
+      const contextualInput = state.topic
+        ? `הנושא: ${state.topic}\n\n${userInput}`
+        : userInput;
       dispatch({ type: 'ADD_MESSAGE', message: { role: 'user', content: userInput } });
-      const result = await sendMessage(activeAction, userInput);
+      const result = await sendMessage(activeAction, contextualInput);
       dispatch({ type: 'SET_LAST_RESPONSE', response: result });
       dispatch({ type: 'MARK_ACTION_USED', action: activeAction });
     }
