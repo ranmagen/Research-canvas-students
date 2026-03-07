@@ -1,14 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Anthropic from '@anthropic-ai/sdk';
 import { REFLECTION_SYSTEM_PROMPT } from '@/lib/prompts';
-
-const apiKey = process.env.ANTHROPIC_API_KEY;
-const hasRealKey = apiKey && apiKey !== 'your-api-key-here';
+import { hasOpenRouterKey, chatCompletion } from '@/lib/openrouter';
 
 export async function POST(req: NextRequest) {
   const { canvasText, actionsUsed } = await req.json();
 
-  if (!hasRealKey) {
+  if (!hasOpenRouterKey()) {
     const report = `# דוח רפלקציה - מה למדתי?
 
 ## 📋 סיכום המחקר
@@ -33,23 +30,18 @@ ${canvasText ? 'עברת על מגוון היבטים של הנושא, כולל 
   }
 
   try {
-    const anthropic = new Anthropic({ apiKey });
     const userContent = canvasText
       ? `תוכן הקאנבס של התלמיד:\n\n${canvasText}`
       : 'התלמיד לא הוסיף עדיין תוכן לקאנבס.';
 
-    const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 1024,
-      system: REFLECTION_SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: userContent }],
-    });
-
-    const report =
-      message.content[0].type === 'text' ? message.content[0].text : '';
+    const report = await chatCompletion(
+      REFLECTION_SYSTEM_PROMPT,
+      userContent,
+      1024
+    );
     return NextResponse.json({ report });
   } catch (err) {
-    console.error('Anthropic API error:', err);
+    console.error('OpenRouter API error:', err);
     return NextResponse.json({ error: 'AI service error' }, { status: 500 });
   }
 }

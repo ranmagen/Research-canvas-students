@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Anthropic from '@anthropic-ai/sdk';
 import { JOKER_SYSTEM_PROMPT } from '@/lib/prompts';
 import { MOCK_JOKER_RESPONSE } from '@/lib/mock-responses';
-
-const apiKey = process.env.ANTHROPIC_API_KEY;
-const hasRealKey = apiKey && apiKey !== 'your-api-key-here';
+import { hasOpenRouterKey, chatCompletion } from '@/lib/openrouter';
 
 export async function POST(req: NextRequest) {
   const { canvasText } = await req.json();
@@ -16,29 +13,19 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  if (!hasRealKey) {
+  if (!hasOpenRouterKey()) {
     return NextResponse.json({ response: MOCK_JOKER_RESPONSE });
   }
 
   try {
-    const anthropic = new Anthropic({ apiKey });
-    const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 512,
-      system: JOKER_SYSTEM_PROMPT,
-      messages: [
-        {
-          role: 'user',
-          content: `תוכן הקאנבס:\n\n${canvasText}`,
-        },
-      ],
-    });
-
-    const text =
-      message.content[0].type === 'text' ? message.content[0].text : '';
+    const text = await chatCompletion(
+      JOKER_SYSTEM_PROMPT,
+      `תוכן הקאנבס:\n\n${canvasText}`,
+      512
+    );
     return NextResponse.json({ response: text });
   } catch (err) {
-    console.error('Anthropic API error:', err);
+    console.error('OpenRouter API error:', err);
     return NextResponse.json({ error: 'AI service error' }, { status: 500 });
   }
 }
