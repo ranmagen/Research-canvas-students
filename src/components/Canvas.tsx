@@ -8,7 +8,7 @@ export default function Canvas() {
   const { setEditor } = useAppStore();
 
   return (
-    <div className="flex-1 h-screen">
+    <div className="flex-1 h-screen" dir="ltr">
       <Tldraw
         onMount={(editor) => {
           setEditor(editor);

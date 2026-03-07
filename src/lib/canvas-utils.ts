@@ -25,25 +25,29 @@ export function addShapeToCanvas(
   title: string,
   color: "black" | "blue" | "green" | "grey" | "light-blue" | "light-green" | "light-red" | "light-violet" | "orange" | "red" | "violet" | "white" | "yellow" = 'yellow'
 ) {
-  const id = createShapeId();
-  const pos = calculateNextPosition(editor);
-  const fullText = `${title}\n\n${text}`;
+  try {
+    const id = createShapeId();
+    const pos = calculateNextPosition(editor);
+    const fullText = `${title}\n\n${text}`;
 
-  editor.createShape({
-    id,
-    type: 'note',
-    x: pos.x,
-    y: pos.y,
-    props: {
-      richText: toRichText(fullText),
-      color,
-      size: 'l',
-    },
-  });
+    editor.createShape({
+      id,
+      type: 'note',
+      x: pos.x,
+      y: pos.y,
+      props: {
+        richText: toRichText(fullText),
+        color,
+        size: 'l',
+      },
+    });
 
-  setTimeout(() => {
-    editor.zoomToFit({ animation: { duration: 300 } });
-  }, 100);
+    setTimeout(() => {
+      editor.zoomToFit({ animation: { duration: 300 } });
+    }, 100);
+  } catch (err) {
+    console.error('Failed to add shape to canvas:', err);
+  }
 }
 
 function extractTextFromRichText(richText: unknown): string {

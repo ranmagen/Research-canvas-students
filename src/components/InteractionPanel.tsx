@@ -48,11 +48,11 @@ export default function InteractionPanel() {
     const canvasText = getAllCanvasText(editor);
     if (!canvasText.trim()) {
       clearResponse();
+      setIsJokerMode(false);
       return;
     }
     const result = await sendJoker(canvasText);
     dispatch({ type: 'SET_LAST_RESPONSE', response: result });
-    setIsJokerMode(false);
   };
 
   const handleAddToCanvas = () => {
@@ -67,6 +67,7 @@ export default function InteractionPanel() {
     addShapeToCanvas(editor, state.lastAiResponse, title, color);
     dispatch({ type: 'SET_LAST_RESPONSE', response: null });
     clearResponse();
+    setIsJokerMode(false);
   };
 
   // Check if joker button was clicked (activeAction is null but path is selected)
