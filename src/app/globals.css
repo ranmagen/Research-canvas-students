@@ -1,3 +1,4 @@
+@import url('tldraw/tldraw.css');
 @import "tailwindcss";
 
 @theme inline {
@@ -24,6 +25,7 @@ body {
   font-family: 'Segoe UI', 'Arial', sans-serif;
   margin: 0;
   overflow: hidden;
+  overscroll-behavior: none;
 }
 
 /* Neo-Brutalist button sink effect */

@@ -1,33 +1,18 @@
 'use client';
 
-import React, { useCallback } from 'react';
-import { Tldraw, Editor } from 'tldraw';
-import 'tldraw/tldraw.css';
+import { Tldraw } from 'tldraw';
 import { useEditor } from '@/store/app-store';
 
-function Canvas() {
+export default function Canvas() {
   const { setEditor } = useEditor();
 
-  const handleMount = useCallback(
-    (editor: Editor) => {
-      setEditor(editor);
-    },
-    [setEditor],
-  );
-
   return (
-    <div
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        bottom: 0,
-        right: 380,
-      }}
-    >
-      <Tldraw onMount={handleMount} />
+    <div style={{ position: 'fixed', inset: 0, right: 380 }}>
+      <Tldraw
+        onMount={(editor) => {
+          setEditor(editor);
+        }}
+      />
     </div>
   );
 }
-
-export default React.memo(Canvas);
