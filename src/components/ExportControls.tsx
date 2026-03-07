@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useAppStore } from '@/store/app-store';
 import { exportCanvasAsImage, getAllCanvasText } from '@/lib/canvas-utils';
+import { Image, FileText, Download, Loader2 } from 'lucide-react';
 
 export default function ExportControls() {
   const { getEditor, state } = useAppStore();
@@ -59,32 +60,36 @@ export default function ExportControls() {
     <div className="space-y-2">
       <button
         onClick={handleExportImage}
-        disabled={false}
-        className="w-full border border-[var(--color-border)] bg-white text-[var(--color-text)] rounded-lg py-2 text-sm font-medium hover:bg-slate-50 disabled:opacity-50 transition-colors cursor-pointer flex items-center justify-center gap-2"
+        className="brutal-btn w-full bg-white text-black border-3 border-black p-2.5 text-sm font-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] cursor-pointer flex items-center justify-center gap-2"
       >
-        <span>🖼️</span>
+        <Image className="w-4 h-4" strokeWidth={2.5} />
         <span>ייצוא כתמונה</span>
       </button>
 
       <button
         onClick={handleReflectionReport}
         disabled={isGenerating}
-        className="w-full border border-indigo-200 bg-indigo-50 text-indigo-700 rounded-lg py-2 text-sm font-medium hover:bg-indigo-100 disabled:opacity-50 transition-colors cursor-pointer flex items-center justify-center gap-2"
+        className="brutal-btn w-full bg-[var(--color-brutal-purple)] text-black border-3 border-black p-2.5 text-sm font-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
       >
-        <span>📝</span>
+        {isGenerating ? (
+          <Loader2 className="w-4 h-4 animate-spin" />
+        ) : (
+          <FileText className="w-4 h-4" strokeWidth={2.5} />
+        )}
         <span>{isGenerating ? 'מייצר דוח...' : 'דוח רפלקציה'}</span>
       </button>
 
       {report && (
-        <div className="bg-white border border-[var(--color-border)] rounded-lg p-3 max-h-48 overflow-y-auto">
-          <p className="text-xs whitespace-pre-wrap leading-relaxed" dir="rtl">
+        <div className="border-3 border-black bg-[var(--color-brutal-yellow)] p-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+          <p className="text-xs font-medium whitespace-pre-wrap leading-relaxed" dir="rtl">
             {report}
           </p>
           <button
             onClick={handleDownloadReport}
-            className="mt-2 w-full border border-[var(--color-border)] bg-white text-[var(--color-text-secondary)] rounded py-1 text-xs hover:bg-slate-50 transition-colors cursor-pointer"
+            className="brutal-btn mt-2 w-full bg-white text-black border-3 border-black p-1.5 text-xs font-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] cursor-pointer flex items-center justify-center gap-1"
           >
-            ⬇️ הורד דוח
+            <Download className="w-3.5 h-3.5" strokeWidth={2.5} />
+            <span>הורד דוח</span>
           </button>
         </div>
       )}

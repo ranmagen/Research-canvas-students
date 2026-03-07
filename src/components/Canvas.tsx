@@ -22,7 +22,7 @@ function Canvas() {
         top: 0,
         left: 0,
         bottom: 0,
-        right: 360,
+        right: 380,
       }}
     >
       <Tldraw onMount={handleMount} />
