@@ -9,7 +9,10 @@ function Canvas() {
   const { setEditor } = useEditor();
 
   return (
-    <div className="flex-1 h-screen min-w-0" dir="ltr">
+    <div
+      className="fixed inset-0 right-[360px]"
+      dir="ltr"
+    >
       <Tldraw
         onMount={(editor) => {
           setEditor(editor);

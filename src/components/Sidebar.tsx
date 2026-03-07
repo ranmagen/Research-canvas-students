@@ -10,7 +10,7 @@ export default function Sidebar() {
   const { state, dispatch } = useAppStore();
 
   return (
-    <aside className="w-[360px] shrink-0 h-screen bg-white border-s-2 border-[var(--color-border)] flex flex-col overflow-hidden">
+    <aside className="fixed top-0 right-0 w-[360px] h-screen bg-white border-l-2 border-[var(--color-border)] flex flex-col overflow-hidden z-10">
       {/* Header */}
       <div className="p-4 border-b border-[var(--color-border)] bg-gradient-to-l from-indigo-50 to-white">
         <h1 className="text-lg font-bold text-[var(--color-primary-dark)]">
