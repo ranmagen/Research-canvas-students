@@ -5,11 +5,12 @@ import { useAppStore } from '@/store/app-store';
 import { exportCanvasAsImage, getAllCanvasText } from '@/lib/canvas-utils';
 
 export default function ExportControls() {
-  const { editor, state } = useAppStore();
+  const { getEditor, state } = useAppStore();
   const [isGenerating, setIsGenerating] = useState(false);
   const [report, setReport] = useState<string | null>(null);
 
   const handleExportImage = async () => {
+    const editor = getEditor();
     if (!editor) return;
     try {
       await exportCanvasAsImage(editor);
@@ -22,6 +23,7 @@ export default function ExportControls() {
     setIsGenerating(true);
     setReport(null);
     try {
+      const editor = getEditor();
       const canvasText = editor ? getAllCanvasText(editor) : '';
       const res = await fetch('/api/export', {
         method: 'POST',
@@ -57,7 +59,7 @@ export default function ExportControls() {
     <div className="space-y-2">
       <button
         onClick={handleExportImage}
-        disabled={!editor}
+        disabled={false}
         className="w-full border border-[var(--color-border)] bg-white text-[var(--color-text)] rounded-lg py-2 text-sm font-medium hover:bg-slate-50 disabled:opacity-50 transition-colors cursor-pointer flex items-center justify-center gap-2"
       >
         <span>🖼️</span>

@@ -13,7 +13,7 @@ const NOTE_COLORS: Record<string, "yellow" | "blue" | "green" | "light-violet" |
 };
 
 export default function InteractionPanel() {
-  const { state, dispatch, editor } = useAppStore();
+  const { state, dispatch, getEditor } = useAppStore();
   const { response, isStreaming, sendMessage, sendJoker, clearResponse } = useChat();
   const [userInput, setUserInput] = useState('');
   const [isJokerMode, setIsJokerMode] = useState(false);
@@ -43,6 +43,7 @@ export default function InteractionPanel() {
   };
 
   const handleJoker = async () => {
+    const editor = getEditor();
     if (!editor) return;
     setIsJokerMode(true);
     const canvasText = getAllCanvasText(editor);
@@ -56,6 +57,7 @@ export default function InteractionPanel() {
   };
 
   const handleAddToCanvas = () => {
+    const editor = getEditor();
     if (!editor || !state.lastAiResponse) return;
 
     const title = isJokerMode

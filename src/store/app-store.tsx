@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useReducer, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useReducer, useCallback, useMemo, useRef } from 'react';
 import { AppState, AppAction, ActionId, PathId, ChatMessage } from '@/types';
 import { Editor } from 'tldraw';
 
@@ -51,9 +51,9 @@ function appReducer(state: AppState, action: AppAction): AppState {
   }
 }
 
-// Separate context for the editor - doesn't change with app state
+// Editor context uses a ref - no re-renders when editor is set
 interface EditorContextType {
-  editor: Editor | null;
+  getEditor: () => Editor | null;
   setEditor: (editor: Editor) => void;
 }
 
@@ -68,13 +68,16 @@ const AppStateContext = createContext<AppStateContextType | null>(null);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, initialState);
-  const [editor, setEditorState] = React.useState<Editor | null>(null);
+  const editorRef = useRef<Editor | null>(null);
 
   const setEditor = useCallback((ed: Editor) => {
-    setEditorState(ed);
+    editorRef.current = ed;
   }, []);
 
-  const editorValue = useMemo(() => ({ editor, setEditor }), [editor, setEditor]);
+  const getEditor = useCallback(() => editorRef.current, []);
+
+  // This value NEVER changes - no re-renders for Canvas
+  const editorValue = useMemo(() => ({ getEditor, setEditor }), [getEditor, setEditor]);
   const appStateValue = useMemo(() => ({ state, dispatch }), [state]);
 
   return (
