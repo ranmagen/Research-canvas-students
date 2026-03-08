@@ -2,7 +2,9 @@
 
 import React, { createContext, useContext, useReducer, useCallback, useMemo, useRef } from 'react';
 import { AppState, AppAction, ActionId, PathId, ChatMessage } from '@/types';
-import { Editor } from 'tldraw';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type CanvasAPI = any;
 
 const initialState: AppState = {
   selectedPath: null,
@@ -51,10 +53,10 @@ function appReducer(state: AppState, action: AppAction): AppState {
   }
 }
 
-// Editor context uses a ref - no re-renders when editor is set
-interface EditorContextType {
-  getEditor: () => Editor | null;
-  setEditor: (editor: Editor) => void;
+// CanvasAPI context uses a ref - no re-renders when editor is set
+interface CanvasAPIContextType {
+  getCanvasAPI: () => CanvasAPI | null;
+  setCanvasAPI: (editor: CanvasAPI) => void;
 }
 
 // App state context - changes frequently with sidebar interactions
@@ -63,37 +65,37 @@ interface AppStateContextType {
   dispatch: React.Dispatch<AppAction>;
 }
 
-const EditorContext = createContext<EditorContextType | null>(null);
+const CanvasAPIContext = createContext<CanvasAPIContextType | null>(null);
 const AppStateContext = createContext<AppStateContextType | null>(null);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, initialState);
-  const editorRef = useRef<Editor | null>(null);
+  const editorRef = useRef<CanvasAPI | null>(null);
 
-  const setEditor = useCallback((ed: Editor) => {
+  const setCanvasAPI = useCallback((ed: CanvasAPI) => {
     editorRef.current = ed;
   }, []);
 
-  const getEditor = useCallback(() => editorRef.current, []);
+  const getCanvasAPI = useCallback(() => editorRef.current, []);
 
   // This value NEVER changes - no re-renders for Canvas
-  const editorValue = useMemo(() => ({ getEditor, setEditor }), [getEditor, setEditor]);
+  const editorValue = useMemo(() => ({ getCanvasAPI, setCanvasAPI }), [getCanvasAPI, setCanvasAPI]);
   const appStateValue = useMemo(() => ({ state, dispatch }), [state]);
 
   return (
-    <EditorContext.Provider value={editorValue}>
+    <CanvasAPIContext.Provider value={editorValue}>
       <AppStateContext.Provider value={appStateValue}>
         {children}
       </AppStateContext.Provider>
-    </EditorContext.Provider>
+    </CanvasAPIContext.Provider>
   );
 }
 
 // Hook for components that only need the editor (like Canvas)
-export function useEditor() {
-  const context = useContext(EditorContext);
+export function useCanvasAPI() {
+  const context = useContext(CanvasAPIContext);
   if (!context) {
-    throw new Error('useEditor must be used within AppProvider');
+    throw new Error('useCanvasAPI must be used within AppProvider');
   }
   return context;
 }
@@ -109,7 +111,7 @@ export function useAppState() {
 
 // Combined hook for components that need both (like InteractionPanel)
 export function useAppStore() {
-  const editorCtx = useContext(EditorContext);
+  const editorCtx = useContext(CanvasAPIContext);
   const appStateCtx = useContext(AppStateContext);
   if (!editorCtx || !appStateCtx) {
     throw new Error('useAppStore must be used within AppProvider');

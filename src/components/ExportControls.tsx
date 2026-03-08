@@ -6,12 +6,12 @@ import { exportCanvasAsImage, getAllCanvasText } from '@/lib/canvas-utils';
 import { Image, FileText, Download, Loader2 } from 'lucide-react';
 
 export default function ExportControls() {
-  const { getEditor, state } = useAppStore();
+  const { getCanvasAPI, state } = useAppStore();
   const [isGenerating, setIsGenerating] = useState(false);
   const [report, setReport] = useState<string | null>(null);
 
   const handleExportImage = async () => {
-    const editor = getEditor();
+    const editor = getCanvasAPI();
     if (!editor) return;
     try {
       await exportCanvasAsImage(editor);
@@ -24,7 +24,7 @@ export default function ExportControls() {
     setIsGenerating(true);
     setReport(null);
     try {
-      const editor = getEditor();
+      const editor = getCanvasAPI();
       const canvasText = editor ? getAllCanvasText(editor) : '';
       const res = await fetch('/api/export', {
         method: 'POST',

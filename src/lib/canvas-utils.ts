@@ -1,15 +1,33 @@
-import { Editor, createShapeId } from 'tldraw';
-import { toRichText } from '@tldraw/tlschema';
+// Excalidraw API type (imported dynamically to avoid SSR issues)
+type ExcalidrawAPI = {
+  getSceneElements: () => readonly any[];
+  getAppState: () => any;
+  getFiles: () => any;
+  updateScene: (scene: any) => void;
+  scrollToContent: (target?: any, opts?: any) => void;
+};
 
-function calculateNextPosition(editor: Editor): { x: number; y: number } {
-  const shapes = editor.getCurrentPageShapes();
+const NOTE_BG_COLORS: Record<string, string> = {
+  yellow: '#FFF9DB',
+  blue: '#D0EBFF',
+  green: '#D3F9D8',
+  'light-violet': '#E8DAFB',
+  orange: '#FFE8CC',
+};
+
+function randomId(): string {
+  return Math.random().toString(36).slice(2, 12);
+}
+
+function calculateNextPosition(api: ExcalidrawAPI): { x: number; y: number } {
+  const elements = api.getSceneElements().filter((el: any) => !el.isDeleted);
   const cols = 3;
   const spacingX = 320;
-  const spacingY = 350;
-  const startX = -400;
-  const startY = -200;
+  const spacingY = 280;
+  const startX = 50;
+  const startY = 50;
 
-  const index = shapes.length;
+  const index = elements.length;
   const col = index % cols;
   const row = Math.floor(index / cols);
 
@@ -20,74 +38,108 @@ function calculateNextPosition(editor: Editor): { x: number; y: number } {
 }
 
 export function addShapeToCanvas(
-  editor: Editor,
+  api: ExcalidrawAPI,
   text: string,
   title: string,
-  color: "black" | "blue" | "green" | "grey" | "light-blue" | "light-green" | "light-red" | "light-violet" | "orange" | "red" | "violet" | "white" | "yellow" = 'yellow'
+  color: string = 'yellow'
 ) {
   try {
-    const id = createShapeId();
-    const pos = calculateNextPosition(editor);
+    const pos = calculateNextPosition(api);
     const fullText = `${title}\n\n${text}`;
+    const bgColor = NOTE_BG_COLORS[color] || NOTE_BG_COLORS.yellow;
 
-    editor.createShape({
-      id,
-      type: 'note',
-      x: pos.x,
-      y: pos.y,
-      props: {
-        richText: toRichText(fullText),
-        color,
-        size: 'l',
+    // Create a sticky-note style rectangle with text
+    const rectId = randomId();
+    const textId = randomId();
+    const width = 280;
+    const height = Math.max(200, Math.min(400, 80 + fullText.length * 0.8));
+
+    const newElements = [
+      {
+        id: rectId,
+        type: 'rectangle',
+        x: pos.x,
+        y: pos.y,
+        width,
+        height,
+        backgroundColor: bgColor,
+        fillStyle: 'solid',
+        strokeColor: '#000000',
+        strokeWidth: 2,
+        roughness: 1,
+        roundness: { type: 3 },
+        isDeleted: false,
+        boundElements: [{ type: 'text', id: textId }],
+        version: 1,
+        versionNonce: Math.floor(Math.random() * 1000000),
       },
+      {
+        id: textId,
+        type: 'text',
+        x: pos.x + 10,
+        y: pos.y + 10,
+        width: width - 20,
+        height: height - 20,
+        text: fullText,
+        fontSize: 16,
+        fontFamily: 1,
+        textAlign: 'right',
+        verticalAlign: 'top',
+        strokeColor: '#000000',
+        isDeleted: false,
+        containerId: rectId,
+        originalText: fullText,
+        autoResize: true,
+        version: 1,
+        versionNonce: Math.floor(Math.random() * 1000000),
+      },
+    ];
+
+    const existingElements = api.getSceneElements();
+    api.updateScene({
+      elements: [...existingElements, ...newElements],
     });
 
     setTimeout(() => {
-      editor.zoomToFit({ animation: { duration: 300 } });
+      api.scrollToContent(undefined, { fitToContent: true, animate: true });
     }, 100);
   } catch (err) {
     console.error('Failed to add shape to canvas:', err);
   }
 }
 
-function extractTextFromRichText(richText: unknown): string {
-  if (!richText || typeof richText !== 'object') return '';
-  const doc = richText as { content?: Array<{ content?: Array<{ text?: string }> }> };
-  if (!doc.content) return '';
-  return doc.content
-    .map((block) =>
-      block.content
-        ? block.content.map((inline) => inline.text || '').join('')
-        : ''
-    )
-    .join('\n');
-}
-
-export function getAllCanvasText(editor: Editor): string {
-  const shapes = editor.getCurrentPageShapes();
+export function getAllCanvasText(api: ExcalidrawAPI): string {
+  const elements = api.getSceneElements();
   const texts: string[] = [];
 
-  for (const shape of shapes) {
-    if (shape.type === 'note' || shape.type === 'text') {
-      const props = shape.props as unknown as Record<string, unknown>;
-      if (props.richText) {
-        const text = extractTextFromRichText(props.richText);
-        if (text.trim()) texts.push(text);
-      }
+  for (const el of elements) {
+    if (el.isDeleted) continue;
+    if (el.type === 'text' && el.text) {
+      const text = el.text.trim();
+      if (text) texts.push(text);
     }
   }
 
   return texts.join('\n\n---\n\n');
 }
 
-export async function exportCanvasAsImage(editor: Editor): Promise<void> {
-  const shapeIds = editor.getCurrentPageShapeIds();
-  if (shapeIds.size === 0) return;
+export async function exportCanvasAsImage(api: ExcalidrawAPI): Promise<void> {
+  const elements = api.getSceneElements().filter((el: any) => !el.isDeleted);
+  if (elements.length === 0) return;
 
-  const result = await editor.toImage([...shapeIds]);
-  if (!result) return;
+  const { exportToBlob } = await import('@excalidraw/excalidraw');
 
-  const url = URL.createObjectURL(result.blob);
+  const blob = await exportToBlob({
+    elements,
+    appState: {
+      ...api.getAppState(),
+      exportWithDarkMode: false,
+      exportBackground: true,
+    },
+    files: api.getFiles(),
+  });
+
+  const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
   a.download = 'mind-canvas.png';
