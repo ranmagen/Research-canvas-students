@@ -1,10 +1,7 @@
 'use client';
 
-import React, { createContext, useContext, useReducer, useCallback, useMemo, useRef } from 'react';
-import { AppState, AppAction, ActionId, PathId, ChatMessage } from '@/types';
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type CanvasAPI = any;
+import React, { createContext, useContext, useReducer, useCallback, useMemo } from 'react';
+import { AppState, AppAction, ActionId, CanvasNote } from '@/types';
 
 const initialState: AppState = {
   selectedPath: null,
@@ -53,10 +50,13 @@ function appReducer(state: AppState, action: AppAction): AppState {
   }
 }
 
-// CanvasAPI context uses a ref - no re-renders when editor is set
-interface CanvasAPIContextType {
-  getCanvasAPI: () => CanvasAPI | null;
-  setCanvasAPI: (editor: CanvasAPI) => void;
+// Canvas notes context - separate from app state to avoid unnecessary re-renders
+interface CanvasContextType {
+  notes: CanvasNote[];
+  addNote: (note: CanvasNote) => void;
+  updateNotePosition: (id: string, x: number, y: number) => void;
+  removeNote: (id: string) => void;
+  getNotes: () => CanvasNote[];
 }
 
 // App state context - changes frequently with sidebar interactions
@@ -65,35 +65,49 @@ interface AppStateContextType {
   dispatch: React.Dispatch<AppAction>;
 }
 
-const CanvasAPIContext = createContext<CanvasAPIContextType | null>(null);
+const CanvasContext = createContext<CanvasContextType | null>(null);
 const AppStateContext = createContext<AppStateContextType | null>(null);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, initialState);
-  const editorRef = useRef<CanvasAPI | null>(null);
+  const [notes, setNotes] = React.useState<CanvasNote[]>([]);
 
-  const setCanvasAPI = useCallback((ed: CanvasAPI) => {
-    editorRef.current = ed;
+  const addNote = useCallback((note: CanvasNote) => {
+    setNotes((prev) => [...prev, note]);
   }, []);
 
-  const getCanvasAPI = useCallback(() => editorRef.current, []);
+  const updateNotePosition = useCallback((id: string, x: number, y: number) => {
+    setNotes((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, x, y } : n))
+    );
+  }, []);
 
-  // This value NEVER changes - no re-renders for Canvas
-  const editorValue = useMemo(() => ({ getCanvasAPI, setCanvasAPI }), [getCanvasAPI, setCanvasAPI]);
+  const removeNote = useCallback((id: string) => {
+    setNotes((prev) => prev.filter((n) => n.id !== id));
+  }, []);
+
+  const notesRef = React.useRef(notes);
+  notesRef.current = notes;
+  const getNotes = useCallback(() => notesRef.current, []);
+
+  const canvasValue = useMemo(
+    () => ({ notes, addNote, updateNotePosition, removeNote, getNotes }),
+    [notes, addNote, updateNotePosition, removeNote, getNotes]
+  );
   const appStateValue = useMemo(() => ({ state, dispatch }), [state]);
 
   return (
-    <CanvasAPIContext.Provider value={editorValue}>
+    <CanvasContext.Provider value={canvasValue}>
       <AppStateContext.Provider value={appStateValue}>
         {children}
       </AppStateContext.Provider>
-    </CanvasAPIContext.Provider>
+    </CanvasContext.Provider>
   );
 }
 
-// Hook for components that only need the editor (like Canvas)
+// Hook for components that need the canvas (like Canvas)
 export function useCanvasAPI() {
-  const context = useContext(CanvasAPIContext);
+  const context = useContext(CanvasContext);
   if (!context) {
     throw new Error('useCanvasAPI must be used within AppProvider');
   }
@@ -111,10 +125,10 @@ export function useAppState() {
 
 // Combined hook for components that need both (like InteractionPanel)
 export function useAppStore() {
-  const editorCtx = useContext(CanvasAPIContext);
+  const canvasCtx = useContext(CanvasContext);
   const appStateCtx = useContext(AppStateContext);
-  if (!editorCtx || !appStateCtx) {
+  if (!canvasCtx || !appStateCtx) {
     throw new Error('useAppStore must be used within AppProvider');
   }
-  return { ...appStateCtx, ...editorCtx };
+  return { ...appStateCtx, ...canvasCtx };
 }

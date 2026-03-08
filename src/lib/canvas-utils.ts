@@ -1,11 +1,4 @@
-// Excalidraw API type (imported dynamically to avoid SSR issues)
-type ExcalidrawAPI = {
-  getSceneElements: () => readonly any[];
-  getAppState: () => any;
-  getFiles: () => any;
-  updateScene: (scene: any) => void;
-  scrollToContent: (target?: any, opts?: any) => void;
-};
+import { CanvasNote } from '@/types';
 
 const NOTE_BG_COLORS: Record<string, string> = {
   yellow: '#FFF9DB',
@@ -19,15 +12,19 @@ function randomId(): string {
   return Math.random().toString(36).slice(2, 12);
 }
 
-function calculateNextPosition(api: ExcalidrawAPI): { x: number; y: number } {
-  const elements = api.getSceneElements().filter((el: any) => !el.isDeleted);
+export interface CanvasAPI {
+  getNotes: () => CanvasNote[];
+  addNote: (note: CanvasNote) => void;
+}
+
+function calculateNextPosition(notes: CanvasNote[]): { x: number; y: number } {
   const cols = 3;
   const spacingX = 320;
   const spacingY = 280;
-  const startX = 50;
-  const startY = 50;
+  const startX = 80;
+  const startY = 80;
 
-  const index = elements.length;
+  const index = notes.length;
   const col = index % cols;
   const row = Math.floor(index / cols);
 
@@ -38,113 +35,61 @@ function calculateNextPosition(api: ExcalidrawAPI): { x: number; y: number } {
 }
 
 export function addShapeToCanvas(
-  api: ExcalidrawAPI,
+  api: CanvasAPI,
   text: string,
   title: string,
   color: string = 'yellow'
 ) {
   try {
-    const pos = calculateNextPosition(api);
-    const fullText = `${title}\n\n${text}`;
-    const bgColor = NOTE_BG_COLORS[color] || NOTE_BG_COLORS.yellow;
+    const notes = api.getNotes();
+    const pos = calculateNextPosition(notes);
 
-    // Create a sticky-note style rectangle with text
-    const rectId = randomId();
-    const textId = randomId();
-    const width = 280;
-    const height = Math.max(200, Math.min(400, 80 + fullText.length * 0.8));
-
-    const newElements = [
-      {
-        id: rectId,
-        type: 'rectangle',
-        x: pos.x,
-        y: pos.y,
-        width,
-        height,
-        backgroundColor: bgColor,
-        fillStyle: 'solid',
-        strokeColor: '#000000',
-        strokeWidth: 2,
-        roughness: 1,
-        roundness: { type: 3 },
-        isDeleted: false,
-        boundElements: [{ type: 'text', id: textId }],
-        version: 1,
-        versionNonce: Math.floor(Math.random() * 1000000),
-      },
-      {
-        id: textId,
-        type: 'text',
-        x: pos.x + 10,
-        y: pos.y + 10,
-        width: width - 20,
-        height: height - 20,
-        text: fullText,
-        fontSize: 16,
-        fontFamily: 1,
-        textAlign: 'right',
-        verticalAlign: 'top',
-        strokeColor: '#000000',
-        isDeleted: false,
-        containerId: rectId,
-        originalText: fullText,
-        autoResize: true,
-        version: 1,
-        versionNonce: Math.floor(Math.random() * 1000000),
-      },
-    ];
-
-    const existingElements = api.getSceneElements();
-    api.updateScene({
-      elements: [...existingElements, ...newElements],
+    api.addNote({
+      id: randomId(),
+      x: pos.x,
+      y: pos.y,
+      title,
+      text,
+      color,
     });
-
-    setTimeout(() => {
-      api.scrollToContent(undefined, { fitToContent: true, animate: true });
-    }, 100);
   } catch (err) {
     console.error('Failed to add shape to canvas:', err);
   }
 }
 
-export function getAllCanvasText(api: ExcalidrawAPI): string {
-  const elements = api.getSceneElements();
-  const texts: string[] = [];
+export function getAllCanvasText(api: CanvasAPI): string {
+  const notes = api.getNotes();
+  if (notes.length === 0) return '';
 
-  for (const el of elements) {
-    if (el.isDeleted) continue;
-    if (el.type === 'text' && el.text) {
-      const text = el.text.trim();
-      if (text) texts.push(text);
-    }
-  }
-
-  return texts.join('\n\n---\n\n');
+  return notes
+    .map((n) => `${n.title}\n\n${n.text}`)
+    .join('\n\n---\n\n');
 }
 
-export async function exportCanvasAsImage(api: ExcalidrawAPI): Promise<void> {
-  const elements = api.getSceneElements().filter((el: any) => !el.isDeleted);
-  if (elements.length === 0) return;
+export async function exportCanvasAsImage(api: CanvasAPI): Promise<void> {
+  const notes = api.getNotes();
+  if (notes.length === 0) return;
 
-  const { exportToBlob } = await import('@excalidraw/excalidraw');
+  // Use html2canvas approach: capture the canvas container
+  const canvasEl = document.querySelector('[data-canvas="true"]')?.parentElement;
+  if (!canvasEl) return;
 
-  const blob = await exportToBlob({
-    elements,
-    appState: {
-      ...api.getAppState(),
-      exportWithDarkMode: false,
-      exportBackground: true,
-    },
-    files: api.getFiles(),
+  // Dynamic import to avoid SSR
+  const { default: html2canvas } = await import('html2canvas');
+  const canvas = await html2canvas(canvasEl as HTMLElement, {
+    backgroundColor: '#f8f8f8',
+    scale: 2,
   });
 
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'mind-canvas.png';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  canvas.toBlob((blob) => {
+    if (!blob) return;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'mind-canvas.png';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
 }

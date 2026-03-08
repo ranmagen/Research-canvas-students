@@ -2,19 +2,18 @@
 
 import { useState } from 'react';
 import { useAppStore } from '@/store/app-store';
-import { exportCanvasAsImage, getAllCanvasText } from '@/lib/canvas-utils';
+import { exportCanvasAsImage, getAllCanvasText, CanvasAPI } from '@/lib/canvas-utils';
 import { Image, FileText, Download, Loader2 } from 'lucide-react';
 
 export default function ExportControls() {
-  const { getCanvasAPI, state } = useAppStore();
+  const { getNotes, addNote, state } = useAppStore();
+  const canvasAPI: CanvasAPI = { getNotes, addNote };
   const [isGenerating, setIsGenerating] = useState(false);
   const [report, setReport] = useState<string | null>(null);
 
   const handleExportImage = async () => {
-    const editor = getCanvasAPI();
-    if (!editor) return;
     try {
-      await exportCanvasAsImage(editor);
+      await exportCanvasAsImage(canvasAPI);
     } catch (err) {
       console.error('Export failed:', err);
     }
@@ -24,8 +23,7 @@ export default function ExportControls() {
     setIsGenerating(true);
     setReport(null);
     try {
-      const editor = getCanvasAPI();
-      const canvasText = editor ? getAllCanvasText(editor) : '';
+      const canvasText = getAllCanvasText(canvasAPI);
       const res = await fetch('/api/export', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

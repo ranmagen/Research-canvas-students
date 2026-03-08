@@ -40,6 +40,15 @@ export interface ChatMessage {
   content: string;
 }
 
+export interface CanvasNote {
+  id: string;
+  x: number;
+  y: number;
+  title: string;
+  text: string;
+  color: string;
+}
+
 export interface AppState {
   selectedPath: PathId | null;
   activeAction: ActionId | null;

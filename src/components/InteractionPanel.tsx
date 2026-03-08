@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useAppStore } from '@/store/app-store';
 import { useChat } from '@/hooks/useChat';
 import { PATHS } from '@/lib/paths';
-import { addShapeToCanvas, getAllCanvasText } from '@/lib/canvas-utils';
+import { addShapeToCanvas, getAllCanvasText, CanvasAPI } from '@/lib/canvas-utils';
 import { Send, Zap, PinIcon, Loader2 } from 'lucide-react';
 
 const NOTE_COLORS: Record<string, "yellow" | "blue" | "green" | "light-violet" | "orange"> = {
@@ -14,7 +14,8 @@ const NOTE_COLORS: Record<string, "yellow" | "blue" | "green" | "light-violet" |
 };
 
 export default function InteractionPanel() {
-  const { state, dispatch, getCanvasAPI } = useAppStore();
+  const { state, dispatch, getNotes, addNote } = useAppStore();
+  const canvasAPI: CanvasAPI = { getNotes, addNote };
   const { response, isStreaming, sendMessage, sendJoker, clearResponse } = useChat();
   const [userInput, setUserInput] = useState('');
   const [isJokerMode, setIsJokerMode] = useState(false);
@@ -44,10 +45,8 @@ export default function InteractionPanel() {
   };
 
   const handleJoker = async () => {
-    const editor = getCanvasAPI();
-    if (!editor) return;
     setIsJokerMode(true);
-    const canvasText = getAllCanvasText(editor);
+    const canvasText = getAllCanvasText(canvasAPI);
     if (!canvasText.trim()) {
       clearResponse();
       setIsJokerMode(false);
@@ -58,8 +57,7 @@ export default function InteractionPanel() {
   };
 
   const handleAddToCanvas = () => {
-    const editor = getCanvasAPI();
-    if (!editor || !state.lastAiResponse) return;
+    if (!state.lastAiResponse) return;
 
     const title = isJokerMode
       ? 'מה חסר לי?'
@@ -67,7 +65,7 @@ export default function InteractionPanel() {
       ? `${action.emoji} ${action.label}`
       : 'תוצאה';
     const color = NOTE_COLORS[selectedPath] || 'yellow';
-    addShapeToCanvas(editor, state.lastAiResponse, title, color);
+    addShapeToCanvas(canvasAPI, state.lastAiResponse, title, color);
     dispatch({ type: 'SET_LAST_RESPONSE', response: null });
     clearResponse();
     setIsJokerMode(false);
